@@ -1,10 +1,10 @@
 (ns grneat-swarm-ecal-2017.core
   (:gen-class)
-  (:use [brevis.graphics.basic-3D]
-        [brevis.physics collision core space utils]
+  (:use [brevis.physics collision core utils]
         [brevis.shape box sphere cone]
-        [brevis core osd vector random input globals display
-         parameters math utils plot]
+        [brevis core vector random globals
+           utils plot]
+        [brevis-utils parameters]
         [brevis.evolution roulette]
         [clojure.set])
   (:require [clojure.string :as string]
@@ -319,9 +319,9 @@
   (let [bird-pos (get-position bird)
 
         nbrs (get-neighbor-objects bird)
-        nbr-birds (sort-by #(length-vec3 (sub-vec3 (get-position %) bird-pos))
+        nbr-birds (sort-by #(length (sub-vec3 (get-position %) bird-pos))
                            (filter bird? nbrs))
-        nbr-foods (sort-by #(length-vec3 (sub-vec3 (get-position %) bird-pos))
+        nbr-foods (sort-by #(length (sub-vec3 (get-position %) bird-pos))
                            (filter food? nbrs))
         closest-bird (when-not (empty? nbr-birds) (first nbr-birds))
         closest-food (when-not (empty? nbr-foods) (first nbr-foods))
@@ -336,14 +336,14 @@
                     (vec3 0 0 0)
                     (sub-vec3 centroid-pos bird-pos))
 
-        speed (length-vec3 (get-velocity bird))
+        speed (length (get-velocity bird))
 
         ;; Compute inputs and update
         grn (grn/update-grn
               (grn/set-grn-inputs (:grn bird)
-                                  [(if dclosest-bird (/ (length-vec3 dclosest-bird) (get-neighborhood-radius)) 1)
-                                   (if dclosest-bird (/ (length-vec3 dcentroid) (get-neighborhood-radius)) 1)
-                                   (if dclosest-food (/ (length-vec3 dclosest-food) (get-neighborhood-radius)) 1)
+                                  [(if dclosest-bird (/ (length dclosest-bird) (get-neighborhood-radius)) 1)
+                                   (if dclosest-bird (/ (length dcentroid) (get-neighborhood-radius)) 1)
+                                   (if dclosest-food (/ (length dclosest-food) (get-neighborhood-radius)) 1)
                                    (if (empty? nbr-birds) 0 (/ (count nbr-birds) (get-param :initial-num-birds)))
                                    speed
                                    (:energy bird)]))
@@ -401,12 +401,12 @@
         :energy (- (:energy bird)
                    (* (get-dt) (:delta-proteins @params) (:num-proteins grn))
                    (* (get-dt) (:delta-bird-energy @params))
-                   (* (get-dt) (:delta-movement @params) (length-vec3 (get-velocity bird))))
+                   (* (get-dt) (:delta-movement @params) (length (get-velocity bird))))
 
         ; Statistics
-        :d-nbr-bird (if closest-bird (length-vec3 dclosest-bird) 0)
-        :d-nbr-food (if closest-food (length-vec3 dclosest-food) 0)
-        :d-centroid (if (empty? nbr-birds) 0 (length-vec3 dcentroid))
+        :d-nbr-bird (if closest-bird (length dclosest-bird) 0)
+        :d-nbr-food (if closest-food (length dclosest-food) 0)
+        :d-centroid (if (empty? nbr-birds) 0 (length dcentroid))
         :num-nbr-birds (count nbr-birds)
         :num-nbr-foods (count nbr-foods)
          ))))
@@ -429,7 +429,7 @@
   "Convenience function to make a mergable map of statistics for some samples."
   [series-name samples]
   {(keyword (str (name series-name) "-average")) (average samples)
-   (keyword (str (name series-name) "-stddev")) (std-dev samples)
+   ;(keyword (str (name series-name) "-stddev")) (std-dev samples)
    (keyword (str (name series-name) "-min")) (apply min samples)
    (keyword (str (name series-name) "-max")) (apply max samples)
    (keyword (str (name series-name) "-N")) (count samples)
@@ -448,6 +448,7 @@
         bird-ages (map #(- (get-time) (get % :birth-time)) birds)
         food-energies (map :energy foods)
         bird-energies (map :energy birds)]
+    (println :objs (count objs) :birds (count birds) :foods (count foods))
     (merge {:t (get-time)
             :wall-time (get-wall-time)
             :num-birds (count birds)
@@ -801,3 +802,5 @@
          "PATH TO THE DIRECTORY TO STORE YOUR PROJECT ON CLUSTER"
          "EXTRA FLAGS FOR CLUSTER LAUNCH")))))
 
+
+(-main)

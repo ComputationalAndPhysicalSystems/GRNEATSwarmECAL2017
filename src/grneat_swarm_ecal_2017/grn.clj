@@ -1,7 +1,8 @@
 (ns grneat-swarm-ecal-2017.grn
   (:require [clj-random.core :as random])
-  (:use [brevis.physics collision core space utils]        
-        [brevis core osd vector plot random parameters])
+  (:use [brevis.physics collision core  utils]
+        [brevis core  vector plot random]
+        [brevis-utils parameters])
   (:import [evolver GRNGenome GRNGene]
            [evaluators GRNGenomeEvaluator]
            [grn GRNProtein GRNModel]
@@ -28,8 +29,8 @@
        :grn-mutation-add-probability 0.33
        :grn-mutation-del-min-size 0
        :grn-mutation-del-probability 0.33
-       :grn-mutation-change-probability 0.33
-       )
+       :grn-mutation-change-probability 0.33)
+
 
 (defn initialize-grneat
   "Initiatialize globals, such as evolutionary features."
