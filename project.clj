@@ -6,14 +6,18 @@
   :jvm-opts ^:replace ["-Djava.rmi.server.hostname=localhost"]
   :dependencies [[org.clojure/clojure "1.6.0"]
                  ;[brevis "0.10.3"]
-                 [com.github.kephale/brevis "0cd1280d918c59f263ea0894e514b88169985e2a"]
+                 [com.github.kephale/brevis "debb1cbc3f44b87b43ce8875d97ce1052b03f7f8"]
                  [us.brevis/GRNEAT "0.0.3"]]
-  :repositories [["imagej" "http://maven.imagej.net/content/groups/hosted/"]
-                 ["imagej-releases" "http://maven.imagej.net/content/repositories/releases/"]
-                 ["ome maven" "http://artifacts.openmicroscopy.org/artifactory/maven/"]
-                 ["imagej-snapshots" "http://maven.imagej.net/content/repositories/snapshots/"]
+  :repositories [["imagej" "https://maven.imagej.net/content/groups/hosted/"]
+                 ["imagej-releases" "https://maven.imagej.net/content/repositories/releases/"]
+                 ["ome maven" "https://artifacts.openmicroscopy.org/artifactory/maven/"]
+                 ["imagej-snapshots" "https://maven.imagej.net/content/repositories/snapshots/"]
                  ["brevis-bintray" "https://dl.bintray.com/kephale/brevis"]
-                 ["jitpack.io" "https://jitpack.io"]
-                 ["clojars2" {:url "http://clojars.org/repo/"
-                              :username :env/LEIN_USERNAME
-                              :password :env/LEIN_PASSWORD}]])
+                 ["jitpack.io" "https://jitpack.io"]])
+
+
+
+
+(require 'cemerick.pomegranate.aether)
+(cemerick.pomegranate.aether/register-wagon-factory!
+  "http" #(org.apache.maven.wagon.providers.http.HttpWagon.))

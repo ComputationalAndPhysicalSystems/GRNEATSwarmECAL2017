@@ -1,11 +1,11 @@
 (ns grneat-swarm-ecal-2017.core
   (:gen-class)
-  (:use [brevis.physics collision core utils]
-        [brevis.shape box sphere cone]
-        [brevis core vector random globals
+  (:use [us.brevis.physics collision core utils]
+        [us.brevis.shape box sphere cone]
+        [us.brevis core vector random globals
            utils plot]
         [brevis-utils parameters]
-        [brevis.evolution roulette]
+        [us.brevis.evolution roulette]
         [clojure.set])
   (:require [clojure.string :as string]
             [seesaw.core :as seesaw]
@@ -408,14 +408,14 @@
         :d-nbr-food (if closest-food (length dclosest-food) 0)
         :d-centroid (if (empty? nbr-birds) 0 (length dcentroid))
         :num-nbr-birds (count nbr-birds)
-        :num-nbr-foods (count nbr-foods)
-         ))))
+        :num-nbr-foods (count nbr-foods)))))
+
 (enable-kinematics-update :bird)                            ; This tells the simulator to move our objects
 (add-update-handler :bird fly)                              ; This tells the simulator how to update these objects
 (add-global-update-handler 10
                            (fn []
                              (doseq [uid @death-queue]
-                               (.deleteObject ^brevis.Engine @*java-engine* uid))
+                               (.deleteObject ^us.brevis.Engine @*java-engine* uid))
                              (reset! death-queue [])))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## Global updates
@@ -432,8 +432,8 @@
    ;(keyword (str (name series-name) "-stddev")) (std-dev samples)
    (keyword (str (name series-name) "-min")) (apply min samples)
    (keyword (str (name series-name) "-max")) (apply max samples)
-   (keyword (str (name series-name) "-N")) (count samples)
-   })
+   (keyword (str (name series-name) "-N")) (count samples)})
+
 
 (defn current-log-map
   "Return a map with the logged state"
@@ -458,8 +458,8 @@
             :num-dead-birds @dead-birds
             :num-dead-before-reproduction @dead-before-reproduction
             :sum-reproductions-before-death @sum-reproductions-before-death
-            :num-birds-added @num-birds-added
-            }
+            :num-birds-added @num-birds-added}
+
            (series-statistics :bird-ages bird-ages)
            (series-statistics :food-energies food-energies)
            (series-statistics :bird-energies bird-energies)
@@ -469,8 +469,8 @@
            (series-statistics :d-centroid (map :d-centroid birds))
            (series-statistics :num-nbr-birds (map :num-nbr-birds birds))
            (series-statistics :num-nbr-foods (map :num-nbr-foods birds))
-           (series-statistics :num-proteins (map #(:num-proteins (:grn %)) birds))
-           )))
+           (series-statistics :num-proteins (map #(:num-proteins (:grn %)) birds)))))
+
 
 (defn current-log-string
   "Return the current string that logs the simulation state."
@@ -564,10 +564,10 @@
   (init-world)
   (init-view)
   (grn/initialize-grneat)
-  (swap! brevis.globals/*gui-state* assoc :gui (:gui @params))
+  (swap! us.brevis.globals/*gui-state* assoc :gui (:gui @params))
 
-  (.setPosition (:camera @brevis.globals/*gui-state*) (vec3 0.0 -385 0))
-  (.setRotation (:camera @brevis.globals/*gui-state*) (vec4 90 0 -90 0))
+  (.setPosition (:camera @us.brevis.globals/*gui-state*) (vec3 0.0 -385 0))
+  (.setRotation (:camera @us.brevis.globals/*gui-state*) (vec4 90 0 -90 0))
 
   (set-dt (:dt @params))
   (set-neighborhood-radius 200)
@@ -581,6 +581,11 @@
       (add-object (random-bird))))
 
   (when (get-param :gui)
+
+    (Thread/sleep 100)
+    (.setVisible (.getFloor (fun.imagej.sciview/get-sciview)) false)
+    (.surroundLighting (fun.imagej.sciview/get-sciview))
+    (.centerOnScene(fun.imagej.sciview/get-sciview))
 
     (let [root (make-frame)]
       (seesaw/listen (map #(seesaw/select root [%])
@@ -699,9 +704,9 @@
                       (* (get-dt) (if (empty? birth-times) 0 (apply min (map #(- t %) birth-times)))))])]
         :legends ["Avg" "Max" "Min"]
         :interval 200
-        :title "Age")
-    )
-  )
+        :title "Age")))
+
+
 
 (defn -main [& args]
   (let [;; First put everything into a map
@@ -733,7 +738,7 @@
     (log-string "@DATA\n")
     (with-rng rng
               ((if (:gui @params) start-gui start-nogui)
-                initialize-simulation java-update-world))))
+               initialize-simulation java-update-world))))
 
 ;; For autostart with Counterclockwise in Eclipse
 (when
@@ -756,8 +761,8 @@
                      :food-radius 5                                      ;5
                      :num-foods 25
                      :selection-attribute :age                            ; :age, :energy
-                     :breed-energy-threshold 1.1                          ; threshold that triggers spawning
-                     }]
+                     :breed-energy-threshold 1.1}]                          ; threshold that triggers spawning
+
     (for [food-radius [5 10 15]
           num-foods [15 25]
           food-migration-probability [0 0.01 0.001]
@@ -766,10 +771,10 @@
           delta-collision [0 0.005 0.01 0.015 0.02] 
           selection-attribute [:age :none]
           delta-consumption [0.1]
-          delta-bird-energy [0.005]
+          delta-bird-energy [0.005]]
           ;delta-consumption [0.05 0.15]
           ;delta-bird-energy [0.005 0.01]
-          ]
+
       [(merge base-params
              {:tag (str "params_fR=" food-radius "_nF=" num-foods "_fMP=" food-migration-probability "_dCollision=" delta-collision "_sA=" selection-attribute "_dConsumption=" delta-consumption "_dBE=" delta-bird-energy)
               :food-radius food-radius

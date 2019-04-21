@@ -1,7 +1,7 @@
 (ns grneat-swarm-ecal-2017.grn
   (:require [clj-random.core :as random])
-  (:use [brevis.physics collision core  utils]
-        [brevis core  vector plot random]
+  (:use [us.brevis.physics collision core  utils]
+        [us.brevis core  vector plot random]
         [brevis-utils parameters])
   (:import [evolver GRNGenome GRNGene]
            [evaluators GRNGenomeEvaluator]
