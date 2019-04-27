@@ -3,7 +3,7 @@
   (:use [us.brevis.physics collision core utils]
         [us.brevis.shape box sphere cone]
         [us.brevis core vector random globals
-           utils plot]
+         utils plot]
         [brevis-utils parameters]
         [us.brevis.evolution roulette]
         [clojure.set])
@@ -11,8 +11,11 @@
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [grneat-swarm-ecal-2017.grn :as grn]
-            [grneat-swarm-ecal-2017.rocks :as distributed]            
-            #_[brevis.distributed-computing.rocks :as distributed]))
+            [grneat-swarm-ecal-2017.rocks :as distributed]
+            [us.brevis.physics.utils :as physics]
+            [us.brevis.vector :as vector]
+            [clj-random.core :as random])
+  (:import (graphics.scenery SceneryBase)))
 
 ; If you base research upon this simulation, please reference the following paper:
 ;
@@ -22,8 +25,8 @@
 ;; ## Globals
 (swap! params assoc
        :tag (str "user" (System/nanoTime))
-       :initial-num-birds 100
-       :min-num-birds 100
+       :initial-num-birds 20
+       :min-num-birds 20
 
        :child-parent-radius 20
        :initial-bird-energy 1
@@ -38,7 +41,7 @@
        :food-migration-probability 0.01
 
        :food-radius 5                                      ;5
-       :num-foods 25
+       :num-foods 5
        :selection-attribute :age                            ; :age, :energy
        :breed-energy-threshold 1.1
 
@@ -205,7 +208,7 @@
                                          (* (get-dt) (:delta-food-energy @params)))))
                           (assoc food
                             :energy (:min-food-energy @params)))
-                        (vec4 0 (:energy food) 0 0.5))]
+                        (vec4 0 (:energy food) 0 1))]
     (if (< (lrand) (* (get-dt) (get-param :food-migration-probability)))
       (move food (random-food-position))
       food)))
@@ -236,7 +239,7 @@
   ([position grn]
    (assoc (move (make-real {:type  :bird
                             :color (vec4 (lrand) (lrand) (lrand) 1)
-                            :shape (create-cone 2.2 1.5)})
+                            :shape (create-sphere 2.2)}) ;(create-cone 2.2 1.5)})
                 position)
      :breed-count 0
 
@@ -389,11 +392,12 @@
         (swap! death-queue conj (get-uid bird))
         bird)
       (assoc (set-acceleration
-               (set-color bird
-                          (vec4 (/ (:energy bird) 10)
-                                0 #_(/ (:num-proteins (:grn bird)) 50)
-                                (/ (- (get-time) (:birth-time bird)) 500)
-                                1.0))
+               #_(set-color bird
+                            (vec4 (/ (:energy bird) 10)
+                                  0 #_(/ (:num-proteins (:grn bird)) 50)
+                                  (/ (- (get-time) (:birth-time bird)) 500)
+                                  1.0))
+               bird
                (bound-acceleration
                  new-acceleration))
         :newborn? false
@@ -552,7 +556,8 @@
  so we only modify bird1."
   [bird1 bird2]
   (swap! collision-events inc)
-  [(assoc bird1 :energy (- (:energy bird1) (* (get-dt) (:delta-collision @params))))
+  [(assoc (physics/set-color bird1 (vector/vec4 (random/lrand) (random/lrand) (random/lrand) 1))
+     :energy (- (:energy bird1) (* (get-dt) (:delta-collision @params))))
    (assoc bird2 :energy (- (:energy bird2) (* (get-dt) (:delta-collision @params))))])
 (add-collision-handler :bird :bird bump)
 
@@ -709,6 +714,7 @@
 
 
 (defn -main [& args]
+  (SceneryBase/xinitThreads)
   (let [;; First put everything into a map
         argmap (apply hash-map
                       (mapcat #(vector (read-string (first %)) (second %) #_(read-string (second %)))
@@ -740,10 +746,12 @@
               ((if (:gui @params) start-gui start-nogui)
                initialize-simulation java-update-world))))
 
+
+
 ;; For autostart with Counterclockwise in Eclipse
-(when
-  (find-ns 'ccw.complete)
-  (-main))
+;(when
+;  (find-ns 'ccw.complete)
+;  (-main))
 
 (defn get-argmaps-experiment-combo
   "Return the argmaps for experiment"
