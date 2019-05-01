@@ -10,12 +10,15 @@
   (:require [clojure.string :as string]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
-            [grneat-swarm-ecal-2017.grn :as grn]
+            ;[grneat-swarm-ecal-2017.grn :as grn]
+            [fun.grn.core :as grn]
             [grneat-swarm-ecal-2017.rocks :as distributed]
             [us.brevis.physics.utils :as physics]
             [us.brevis.vector :as vector]
             [clj-random.core :as random])
   (:import (graphics.scenery SceneryBase)))
+
+; TODO test out a custom create-sphere function in here
 
 ; If you base research upon this simulation, please reference the following paper:
 ;
@@ -25,8 +28,8 @@
 ;; ## Globals
 (swap! params assoc
        :tag (str "user" (System/nanoTime))
-       :initial-num-birds 20
-       :min-num-birds 20
+       :initial-num-birds 200
+       :min-num-birds 200
 
        :child-parent-radius 20
        :initial-bird-energy 1
@@ -41,7 +44,7 @@
        :food-migration-probability 0.01
 
        :food-radius 5                                      ;5
-       :num-foods 5
+       :num-foods 25
        :selection-attribute :age                            ; :age, :energy
        :breed-energy-threshold 1.1
 
@@ -67,7 +70,7 @@
        :num-GRN-inputs 6
        :num-GRN-outputs 9
        :num-GRN-steps 2
-       :neighborhood-radius 50                              ;100
+       :neighborhood-radius 20                              ;100
 
        :width 200
        :height 200)
@@ -239,7 +242,7 @@
   ([position grn]
    (assoc (move (make-real {:type  :bird
                             :color (vec4 (lrand) (lrand) (lrand) 1)
-                            :shape (create-sphere 2.2)}) ;(create-cone 2.2 1.5)})
+                            :shape (create-cone 2.2 1.5)})
                 position)
      :breed-count 0
 
@@ -282,12 +285,14 @@
                                      candidates)]
                     candidates)))
   ([candidates]
-   (cond (= (get-param :selection-attribute) :energy)
-         (first (select-with candidates :energy))
-         (= (get-param :selection-attribute) :age)
-         (first (select-with candidates #(- (get-time) (:birth-time %))))
-         :else
-         (lrand-nth candidates))))
+   (if (empty? candidates)
+     (select-parent)
+     (cond (= (get-param :selection-attribute) :energy)
+           (first (select-with candidates :energy))
+           (= (get-param :selection-attribute) :age)
+           (first (select-with candidates #(- (get-time) (:birth-time %))))
+           :else
+           (lrand-nth candidates)))))
 
 (defn crossover-grns
   "Crossover 2 grns."
@@ -326,6 +331,7 @@
                            (filter bird? nbrs))
         nbr-foods (sort-by #(length (sub-vec3 (get-position %) bird-pos))
                            (filter food? nbrs))
+        ;_ (println :bird-pos bird-pos :nbrs (count nbrs) :birds (count nbr-birds) :foods (count nbr-foods))
         closest-bird (when-not (empty? nbr-birds) (first nbr-birds))
         closest-food (when-not (empty? nbr-foods) (first nbr-foods))
         dclosest-bird (when closest-bird (sub-vec3 (get-position closest-bird) bird-pos))
@@ -415,7 +421,8 @@
         :num-nbr-foods (count nbr-foods)))))
 
 (enable-kinematics-update :bird)                            ; This tells the simulator to move our objects
-(add-update-handler :bird fly)                              ; This tells the simulator how to update these objects
+;(add-update-handler :bird fly)                              ; This tells the simulator how to update these objects
+(add-parallel-update-handler :bird fly)                              ; This tells the simulator how to update these objects
 (add-global-update-handler 10
                            (fn []
                              (doseq [uid @death-queue]
@@ -575,7 +582,7 @@
   (.setRotation (:camera @us.brevis.globals/*gui-state*) (vec4 90 0 -90 0))
 
   (set-dt (:dt @params))
-  (set-neighborhood-radius 200)
+  (set-neighborhood-radius (:neighborhood-radius @params))
 
   (dotimes [_ (:num-foods @params)]
     (add-object (random-food)))
@@ -738,6 +745,8 @@
     (println argmap)
     (println arg-params)
     (reset! params arg-params)
+
+    ;(System/)
 
     (doseq [[k v] @params]
       (log-string (str k "\t" (if (string? v) (str "\"" v "\"") v) "\n")))

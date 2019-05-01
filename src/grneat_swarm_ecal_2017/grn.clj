@@ -3,11 +3,11 @@
   (:use [us.brevis.physics collision core  utils]
         [us.brevis core  vector plot random]
         [brevis-utils parameters])
-  (:import [evolver GRNGenome GRNGene]
-           [evaluators GRNGenomeEvaluator]
-           [grn GRNProtein GRNModel]
+  (:import [fun.grn.evolver GRNGenome GRNGene]
+           [fun.grn.evaluators GRNGenomeEvaluator]
+           [fun.grn.grn GRNProtein GRNModel]
            [java.util Random]
-           [operators GRNAddGeneMutationOperator
+           [fun.grn.operators GRNAddGeneMutationOperator
             GRNAligningCrossoverOperator_ParentCountProb
             GRNAligningCrossoverOperator_v1
             GRNAligningCrossoverOperator_v1b
