@@ -64,7 +64,7 @@
        ;:variation-trigger 20000 ;; if this is a number, then this is a time threshold. otherwise it should be a predicate (some function testable for true/false)
        :terminate-trigger 40000 ;; if this is a number, then this is a time threshold. otherwise it should be a predicate (some function testable for true/false)
        :start-time (System/nanoTime)
-       :screenshot-interval -1
+       :screenshot-interval 250
 
        :output-directory (str (System/getProperty "user.home") java.io.File/separator)
 
@@ -521,10 +521,22 @@
 
 (defn get-oldest
   []
-  (random/lrand-nth (min-key :birth-time (into [] (filter bird? (all-objects))))))
+  (let [birds  (filter bird? (all-objects))
+        earliest-time (apply min (map :birth-time birds))]
+    (random/lrand-nth (filter #(= (:birth-time %) earliest-time) birds))))
+
+(defn get-oldest-and-richest
+  []
+  (let [birds  (filter bird? (all-objects))
+        rich-fn (fn [b] (* (- (get-time b) (:birth-time b))
+                          (:energy b)))
+        score (apply max (map rich-fn birds))]
+    (random/lrand-nth (filter #(= (rich-fn %) score) birds))))
+
+  ;(random/lrand-nth (min-key :birth-time (into [] (filter bird? (all-objects))))))
 
 (let [grn-counter (atom 0)
-      grn-interval 500]
+      grn-interval 100]
   (add-global-update-handler 1
                              (fn []
                                ; Write interval statistics
@@ -532,6 +544,12 @@
                                         @grn-counter)
                                  (let [oldest (get-oldest)
                                        filename (str "grn_" (get-time) "_age_" (- (get-time) (:birth-time oldest)) ".grn")]
+                                   (doseq [bird (filter bird? (all-objects))]
+                                     (when-not (= bird oldest)
+                                       (set-object (get-uid bird)
+                                         (assoc bird
+                                           :grn (crossover-grns (:grn bird) (:grn oldest))))))
+                                         ;:grn (mutate-grn (:grn oldest)))))
                                    (println "Saving oldest grn to " filename)
                                    (grn/write-to-file (:grn oldest) filename)
                                    (reset! grn-counter (int (/ (get-time) grn-interval))))))))
@@ -565,12 +583,12 @@
                                           (add-object bird)))))))
 
 ; Take periodic screenshots
-#_(add-global-update-handler 3
-                             (fn []
-                               (when (and (pos? (:screenshot-interval @params))
-                                          (> (get-time) (* (:screenshot-interval @params) @screenshot-num)))
-                                 (screenshot (str "feedbackSwarmEvolve_t_" (get-time) ".png"))
-                                 (swap! screenshot-num inc))))
+(add-global-update-handler 3
+                           (fn []
+                             (when (and (pos? (:screenshot-interval @params))
+                                        (> (get-time) (* (:screenshot-interval @params) @screenshot-num)))
+                               (.takeScreenshot (fun.imagej.sciview/get-sciview) (str "swarmScenery_t_" (get-time) ".png"))
+                               (swap! screenshot-num inc))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## Collision handling
