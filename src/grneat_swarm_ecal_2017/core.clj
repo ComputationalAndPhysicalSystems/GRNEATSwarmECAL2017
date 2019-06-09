@@ -69,7 +69,7 @@
        :output-directory (str (System/getProperty "user.home") java.io.File/separator)
 
        :num-GRN-inputs 7
-       :num-GRN-outputs 11
+       :num-GRN-outputs 4
        :num-GRN-steps 1
        :neighborhood-radius 100                              ;100
 
@@ -365,31 +365,31 @@
 
         ;; Compute outputs
         grn-outputs (grn/get-grn-outputs grn)
-        grn-scale 1;0.0
+        grn-scale 10.0
         total-sum 1 #_(apply + grn-outputs)
         grn-outputs (map #(* (/ % total-sum) grn-scale) grn-outputs)
         closest-bird-weight (- (nth grn-outputs 0) (nth grn-outputs 1))
         closest-food-weight (- (nth grn-outputs 2) (nth grn-outputs 3))
-        closest-random-weight (nth grn-outputs 4)
-        velocity-weight (- (nth grn-outputs 5) (nth grn-outputs 6))
-        centroid-weight (- (nth grn-outputs 7) (nth grn-outputs 8))
-        closest-velocity-weight (- (nth grn-outputs 9) (nth grn-outputs 10))
+        ;closest-random-weight (nth grn-outputs 4)
+        ;velocity-weight (- (nth grn-outputs 5) (nth grn-outputs 6))
+        ;centroid-weight (- (nth grn-outputs 7) (nth grn-outputs 8))
+        ;closest-velocity-weight (- (nth grn-outputs 9) (nth grn-outputs 10))
 
         new-acceleration (v/add-vec3 (if closest-bird
                                        (v/mul-vec3 dclosest-bird closest-bird-weight)
                                        (v/vec3 0 0 0))
                                      (if closest-food
                                        (v/mul-vec3 dclosest-food closest-food-weight)
-                                       (v/vec3 0 0 0))
-                                     (if dclosest-bird
-                                       (v/mul-vec3 dcentroid centroid-weight)
-                                       (v/vec3 0 0 0))
-                                     (if closest-speed
-                                       (v/mul-vec3 (get-velocity closest-bird) closest-velocity-weight)
-                                       (v/vec3 0 0 0))
-                                     (v/mul-vec3 (get-velocity bird) velocity-weight)
-                                     #_control-force
-                                     (v/mul-vec3 (lrand-vec3 -1 1 -1 1 -1 1) closest-random-weight))
+                                       (v/vec3 0 0 0)))
+                                     ;(if dclosest-bird
+                                     ;  (v/mul-vec3 dcentroid centroid-weight)
+                                     ;  (v/vec3 0 0 0))
+                                     ;(if closest-speed
+                                     ;  (v/mul-vec3 (get-velocity closest-bird) closest-velocity-weight)
+                                     ;  (v/vec3 0 0 0))
+                                     ;(v/mul-vec3 (get-velocity bird) velocity-weight)
+                                     ;#_control-force
+                                     ;(v/mul-vec3 (lrand-vec3 -1 1 -1 1 -1 1) closest-random-weight))
 
         child (when (> (:energy bird) (get-param :breed-energy-threshold))
                 (breed (add-object (random-bird)) bird nbr-birds))
