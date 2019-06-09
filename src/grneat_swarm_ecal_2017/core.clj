@@ -27,8 +27,9 @@
 ;; ## Globals
 (swap! params assoc
        :tag (str "user" (System/nanoTime))
-       :initial-num-birds 1000
-       :min-num-birds 1000
+       :initial-num-birds 500
+       :min-num-birds 500
+       ;:initial-bird-grn "/home/kharrington/git/GRNEATSwarmECAL2017/grn_11500.0_age_114.5.grn"
 
        :child-parent-radius 10
        :initial-bird-energy 1
@@ -39,6 +40,7 @@
        :delta-movement 0.0000
        :delta-proteins 0                                    ; 0.000001
        :delta-food-energy 0.08
+       :delta-stationary 0.01
 
        :food-migration-probability 0.01
 
@@ -66,10 +68,10 @@
 
        :output-directory (str (System/getProperty "user.home") java.io.File/separator)
 
-       :num-GRN-inputs 6
-       :num-GRN-outputs 9
+       :num-GRN-inputs 7
+       :num-GRN-outputs 11
        :num-GRN-steps 1
-       :neighborhood-radius 20                              ;100
+       :neighborhood-radius 100                              ;100
 
        :width 300
        :height 300)
@@ -211,7 +213,8 @@
                                          (* (get-dt) (:delta-food-energy @params)))))
                           (assoc food
                             :energy (:min-food-energy @params)))
-                        (v/vec4 0 (:energy food) 0 1))]
+                        (apply v/vec4 (repeat 4 (:energy food))))]
+                        ;(v/vec4 0 (:energy food) 0 1))]
     (if (< (lrand) (* (get-dt) (get-param :food-migration-probability)))
       (move food (random-food-position))
       food)))
@@ -242,7 +245,7 @@
   ([position grn]
    (assoc (move (make-real {:type  :bird
                             :color (v/vec4 (lrand) (lrand) (lrand) 1)
-                            :shape (create-cone 2.2 1.5)})
+                            :shape (create-cone 5.2 1.5)})
                 position)
      :breed-count 0
 
@@ -261,6 +264,7 @@
 (defn load-bird
   "Load a random bird from grn filename"
   [grn-filename]
+  ;(println :load-grn (grn/load-from-file grn-filename))
   (make-bird (random-bird-position)
              (grn/load-from-file grn-filename)))
 
@@ -346,6 +350,7 @@
                     (v/sub-vec3 centroid-pos bird-pos))
 
         speed (v/length-vec3 (get-velocity bird))
+        closest-speed (when closest-bird (v/length-vec3 (get-velocity closest-bird)))
 
         ;; Compute inputs and update
         grn (grn/update-grn
@@ -355,11 +360,12 @@
                                    (if dclosest-food (/ (v/length-vec3 dclosest-food) (get-neighborhood-radius)) 1)
                                    (if (empty? nbr-birds) 0 (/ (count nbr-birds) (get-param :initial-num-birds)))
                                    speed
+                                   (or closest-speed 0)
                                    (:energy bird)]))
 
         ;; Compute outputs
         grn-outputs (grn/get-grn-outputs grn)
-        grn-scale 10.0
+        grn-scale 1;0.0
         total-sum 1 #_(apply + grn-outputs)
         grn-outputs (map #(* (/ % total-sum) grn-scale) grn-outputs)
         closest-bird-weight (- (nth grn-outputs 0) (nth grn-outputs 1))
@@ -367,6 +373,7 @@
         closest-random-weight (nth grn-outputs 4)
         velocity-weight (- (nth grn-outputs 5) (nth grn-outputs 6))
         centroid-weight (- (nth grn-outputs 7) (nth grn-outputs 8))
+        closest-velocity-weight (- (nth grn-outputs 9) (nth grn-outputs 10))
 
         new-acceleration (v/add-vec3 (if closest-bird
                                        (v/mul-vec3 dclosest-bird closest-bird-weight)
@@ -376,6 +383,9 @@
                                        (v/vec3 0 0 0))
                                      (if dclosest-bird
                                        (v/mul-vec3 dcentroid centroid-weight)
+                                       (v/vec3 0 0 0))
+                                     (if closest-speed
+                                       (v/mul-vec3 (get-velocity closest-bird) closest-velocity-weight)
                                        (v/vec3 0 0 0))
                                      (v/mul-vec3 (get-velocity bird) velocity-weight)
                                      #_control-force
@@ -398,12 +408,12 @@
         (swap! death-queue conj (get-uid bird))
         bird)
       (assoc (set-acceleration
-               #_(set-color bird
-                            (vec4 (/ (:energy bird) 10)
-                                  0 #_(/ (:num-proteins (:grn bird)) 50)
-                                  (/ (- (get-time) (:birth-time bird)) 500)
-                                  1.0))
-               bird
+               (set-color bird
+                          (v/vec4 (/ (:energy bird) 10)
+                                (/ (:num-proteins grn) 50)
+                                (min 1 (/ (- (get-time) (:birth-time bird)) 200))
+                                1.0))
+               ;bird
                (bound-acceleration
                  new-acceleration))
         :newborn? false
@@ -411,6 +421,8 @@
         :energy (- (:energy bird)
                    (* (get-dt) (:delta-proteins @params) (:num-proteins grn))
                    (* (get-dt) (:delta-bird-energy @params))
+                   ;(* (get-dt) (:delta-stationary @params) (min 1 (/ (max 0.001 speed))))
+                   (* (get-dt) (:delta-stationary @params) (if (< speed 0.001) 1 0))
                    (* (get-dt) (:delta-movement @params) (v/length-vec3 (get-velocity bird))))
 
         ; Statistics
