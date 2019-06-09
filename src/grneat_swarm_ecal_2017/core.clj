@@ -27,10 +27,10 @@
 ;; ## Globals
 (swap! params assoc
        :tag (str "user" (System/nanoTime))
-       :initial-num-birds 500
-       :min-num-birds 500
+       :initial-num-birds 1000
+       :min-num-birds 1000
 
-       :child-parent-radius 20
+       :child-parent-radius 10
        :initial-bird-energy 1
 
        :delta-bird-energy 0.005                             ;0.0025
@@ -68,11 +68,11 @@
 
        :num-GRN-inputs 6
        :num-GRN-outputs 9
-       :num-GRN-steps 2
+       :num-GRN-steps 1
        :neighborhood-radius 20                              ;100
 
-       :width 200
-       :height 200)
+       :width 300
+       :height 300)
 
 (def slider-keys
   [:delta-bird-energy
@@ -459,7 +459,7 @@
         bird-ages (map #(- (get-time) (get % :birth-time)) birds)
         food-energies (map :energy foods)
         bird-energies (map :energy birds)]
-    (println :objs (count objs) :birds (count birds) :foods (count foods))
+    ;(println :objs (count objs) :birds (count birds) :foods (count foods))
     (merge {:t (get-time)
             :wall-time (get-wall-time)
             :num-birds (count birds)
@@ -506,6 +506,25 @@
                                  (reset! dead-before-reproduction 0)
                                  (reset! sum-reproductions-before-death 0)
                                  (reset! log-counter (int (/ (get-time) (get-param :log-interval))))))))
+
+(defn get-oldest
+  []
+  (random/lrand-nth (min-key :birth-time (into [] (filter bird? (all-objects))))))
+
+(let [grn-counter (atom 0)
+      grn-interval 500]
+  (add-global-update-handler 1
+                             (fn []
+                               ; Write interval statistics
+                               (when (> (int (/ (get-time) grn-interval))
+                                        @grn-counter)
+                                 (let [oldest (get-oldest)
+                                       filename (str "grn_" (get-time) "_age_" (- (get-time) (:birth-time oldest)) ".grn")]
+                                   (println "Saving oldest grn to " filename)
+                                   (grn/write-to-file (:grn oldest) filename)
+                                   (reset! grn-counter (int (/ (get-time) grn-interval))))))))
+
+
 
 ; Terminate the simulation when :terminate-trigger passes
 ; Also has an environmental variation expression
